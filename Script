@@ -6,7 +6,7 @@ if game.PlaceId == 13642296453 then
     -- Janela principal
     local Window = OrionLib:MakeWindow({Name = "PEDRIN TRAVAS", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
 
-    -- Variáveis
+    -- Variáveis globais
     _G.AutoAtk = false
     _G.AutoRebirth = false
 
@@ -18,7 +18,7 @@ if game.PlaceId == 13642296453 then
             }
             
             game:GetService("ReplicatedStorage").Packages.Knit.Services.ClickService.RF.Click:InvokeServer() -- Removido os parênteses extra
-            wait(0.3) -- Adicionado um pequeno intervalo para não sobrecarregar o servidor
+            wait(0.3) 
         end
     end
 
@@ -35,34 +35,45 @@ if game.PlaceId == 13642296453 then
         game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.EquipBest:InvokeServer()
         wait(1.0)
     end
-    -- abas
-    
+
+    -- Abas
+
     local AutoFarmTab = Window:MakeTab({
         Name = "Auto Farm",
         Icon = "rbxassetid://4483345998",
         PremiumOnly = false
     })
+    
+    local AutoRebirthTab = Window:MakeTab({
+        Name = "Auto Rebirth",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+    
     local MiscTab = Window:MakeTab({
         Name = "Misc",
         Icon = "rbxassetid://4483345998",
         PremiumOnly = false
     })
 
-    -- Section
+    -- Seções
 
-    local Section = AutoFarmTab:AddSection({
-        Name = "Auto-Farme"
+    local AutoFarmSection = AutoFarmTab:AddSection({
+        Name = "Auto-Farm" 
     })
-    local Section = AutoRebirthTab:AddSection({
+    
+    local AutoRebirthSection = AutoRebirthTab:AddSection({
         Name = "Auto-Rebirth"
     })
-    local Section = MiscTab:AddSection({
+    
+    local MiscSection = MiscTab:AddSection({
         Name = "Pets"
     })
+
     -- Botões
 
-    AutoFarmTab:AddToggle({
-        Name = "auto-click",
+    AutoFarmSection:AddToggle({
+        Name = "Auto Click", 
         Default = false,
         Callback = function(Value)
             _G.AutoAtk = Value
@@ -72,8 +83,8 @@ if game.PlaceId == 13642296453 then
         end
     })
 
-    AutoRebirthTab:AddToggle({
-        Name = "auto-rebirth",
+    AutoRebirthSection:AddToggle({
+        Name = "Auto Rebirth",
         Default = false,
         Callback = function(Value)
             _G.AutoRebirth = Value
@@ -83,10 +94,10 @@ if game.PlaceId == 13642296453 then
         end
     })
 
-    MiscTab:addbutton({
-                Name = "Equip Best Pets"
-                Callback = function()
-                    EquipBest()
-
+    MiscSection:AddButton({
+        Name = "Equip Best Pets", 
+        Callback = function()
+            EquipBest()
+        end
     })
 end
