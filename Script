@@ -6,7 +6,7 @@ if game.PlaceId == 13642296453 then
     -- Janela principal
     local Window = OrionLib:MakeWindow({Name = "PEDRIN TRAVAS", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
 
-    -- Variáveis globais
+    -- Variáveis
     _G.AutoAtk = false
     _G.AutoRebirth = false
 
@@ -33,7 +33,7 @@ if game.PlaceId == 13642296453 then
         game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.UnequipAll:InvokeServer()
         wait(0.5)
         game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.EquipBest:InvokeServer()
-        wait(1.0)
+        wait(0.7)
     end
 
     -- Abas
@@ -44,11 +44,6 @@ if game.PlaceId == 13642296453 then
         PremiumOnly = false
     })
     
-    local AutoRebirthTab = Window:MakeTab({
-        Name = "Auto Rebirth",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
-    })
     
     local MiscTab = Window:MakeTab({
         Name = "Misc",
@@ -62,7 +57,7 @@ if game.PlaceId == 13642296453 then
         Name = "Auto-Farm" 
     })
     
-    local AutoRebirthSection = AutoRebirthTab:AddSection({
+    local AutoRebirthSection = AutoFarmTab:AddSection({
         Name = "Auto-Rebirth"
     })
     
