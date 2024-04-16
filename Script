@@ -1,0 +1,92 @@
+if game.PlaceId == 13642296453 then
+
+    -- Carregar OrionLib
+    local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+    -- Janela principal
+    local Window = OrionLib:MakeWindow({Name = "PEDRIN TRAVAS", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
+
+    -- Variáveis
+    _G.AutoAtk = false
+    _G.AutoRebirth = false
+
+    -- Funções
+    local function AutoAtk()
+        while _G.AutoAtk do
+            local args = {
+                [1] = -0.19149193167686462
+            }
+            
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.ClickService.RF.Click:InvokeServer() -- Removido os parênteses extra
+            wait(0.3) -- Adicionado um pequeno intervalo para não sobrecarregar o servidor
+        end
+    end
+
+    local function AutoRebirth()
+        while _G.AutoRebirth do
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.QuestService.RF.ActionQuest:InvokeServer()
+            wait(1)
+        end
+    end
+
+    local function EquipBest()
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.UnequipAll:InvokeServer()
+        wait(0.5)
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.EquipBest:InvokeServer()
+        wait(1.0)
+    end
+    -- abas
+    
+    local AutoFarmTab = Window:MakeTab({
+        Name = "Auto Farm",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+    local MiscTab = Window:MakeTab({
+        Name = "Misc",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Section
+
+    local Section = AutoFarmTab:AddSection({
+        Name = "Auto-Farme"
+    })
+    local Section = AutoRebirthTab:AddSection({
+        Name = "Auto-Rebirth"
+    })
+    local Section = MiscTab:AddSection({
+        Name = "Pets"
+    })
+    -- Botões
+
+    AutoFarmTab:AddToggle({
+        Name = "auto-click",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoAtk = Value
+            if Value then
+                AutoAtk()
+            end
+        end
+    })
+
+    AutoRebirthTab:AddToggle({
+        Name = "auto-rebirth",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoRebirth = Value
+            if Value then
+                AutoRebirth()
+            end
+        end
+    })
+
+    MiscTab:addbutton({
+                Name = "Equip Best Pets"
+                Callback = function()
+                    EquipBest()
+
+    })
+end
