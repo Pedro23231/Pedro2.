@@ -1,0 +1,195 @@
+if game.PlaceId == 13642296453 then
+
+    -- Carregar OrionLib
+
+    local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+    -- Janela principal
+
+    local Window = OrionLib:MakeWindow({Name = "PEDRIN TRAVAS", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
+
+    -- Variáveis globais
+
+    _G.AutoAtk = false
+    _G.AutoRebirth = false
+    _G.AutoCollectcoin = false
+    _G.AutoFarmNpcs = false
+
+    -- Funções
+    local function AutoAtk()
+        while _G.AutoAtk do
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.ClickService.RF.Click:InvokeServer()
+            wait(0.000000000000001) 
+        end
+    end
+
+    local function AutoRebirth()
+        while _G.AutoRebirth do
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.QuestService.RF.ActionQuest:InvokeServer()
+            wait(1)
+        end
+    end
+
+    local function EquipBest()
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.UnequipAll:InvokeServer()
+        wait(0.3)
+        game:GetService("ReplicatedStorage").Packages.Knit.Services.PetInvService.RF.EquipBest:InvokeServer()
+        wait(0.5)
+    end
+
+    local function Rejoin()
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId)
+    end
+
+    local function AutoCollectcoin()
+        while _G.AutoCollectcoin do
+            local args = {
+                [1] = "eee76c54-903b-4368-af01-b2ca4eb36d84"
+            }
+            
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.ItemDropService.RF.ClaimItem:InvokeServer(unpack(args))
+            Wait(0.00000000000000000001)
+        end
+    end
+
+    local function AutoFarmNpcs()
+        while true do
+            wait(1)
+            local NPCs = workspace:Getchildren()
+            for _, in ipairs(NPCs) do
+                if name = "NPC" then
+                end
+            end
+        end
+    end
+    
+
+
+
+    -- Abas
+
+    local AutoFarmTab = Window:MakeTab({
+        Name = "Auto Farm",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+    
+    local MiscTab = Window:MakeTab({
+        Name = "Misc",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Seções
+
+    local AutoFarmSection = AutoFarmTab:AddSection({
+        Name = "Auto Farm" 
+    })
+    
+    local AutoRebirthSection = AutoFarmTab:AddSection({
+        Name = "Auto Rebirth"
+    })
+    
+    local MiscSection = MiscTab:AddSection({
+        Name = "Pets"
+    })
+
+    local MiscSection = MiscTab:AddSection({
+        Name = "Player Miscs"
+    })
+
+    -- Botões
+
+    AutoFarmSection:AddToggle({
+        Name = "Auto Click", 
+        Default = false,
+        Callback = function(Value)
+            _G.AutoAtk = Value
+            if Value then
+                AutoAtk()
+            end
+        end
+    })
+
+    AutoRebirthSection:AddToggle({
+        Name = "Auto Rebirth",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoRebirth = Value
+            if Value then
+                AutoRebirth()
+            end
+        end
+    })
+
+    MiscSection:AddButton({
+        Name = "Equip Best Pets", 
+        Callback = function()
+            EquipBest()
+        end
+    })
+
+    MiscSection:AddButton({
+        Name = "Button!",
+        Callback = function()
+            Rejoin()
+          end    
+    })
+
+    AutoFarmSection:AddToggle({
+        Name = "Auto Collect Coin",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoCollectcoin = Value
+            if Value then
+                AutoCollectcoin()
+            end
+        end
+    })
+
+    AutoFarmSection:AddToggle({
+        Name = "Auto Farm", 
+        Default = false,
+        Callback = function(Value)
+            _G.AutoFarmNpcs = Value
+            if Value then
+                AutoFarmNpcs()
+            end
+        end
+    })
+
+
+    -- Dropdowns
+
+
+
+    -- Slider
+
+    MiscTab:AddSlider({
+        Name = "WalkSpeed",
+        Min = 16,
+        Max = 500,
+        Default = 5,
+        Color = Color3.fromRGB(255,255,255),
+        Increment = 1,
+        ValueName = "WS",
+        Callback = function(Value)
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end    
+    })
+
+    MiscTab:AddSlider({
+        Name = "Jump Height",
+        Min = 16,
+        Max = 500,
+        Default = 5,
+        Color = Color3.fromRGB(255,255,255),
+        Increment = 1,
+        ValueName = "Height",
+        Callback = function(Value)
+         game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+        end    
+       })
+
+
+end
