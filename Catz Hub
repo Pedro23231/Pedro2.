@@ -1,23 +1,21 @@
 if game.PlaceId == 13642296453 then
 
     -- Carregar OrionLib
-
     local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
     -- Janela principal
-
-    local Window = OrionLib:MakeWindow({Name = "PEDRIN TRAVAS", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
+    local Window = OrionLib:MakeWindow({Name = "Catz Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
 
     -- Variáveis globais
-
-    _G.AutoAtk = false
+    _G.AutoClick = false
     _G.AutoRebirth = false
-    _G.AutoCollectcoin = false
-    _G.AutoFarmNpcs = false
+    _G.AutoHatch = false
+    _G.Selectegg = "Basic egg"
+
 
     -- Funções
-    local function AutoAtk()
-        while _G.AutoAtk do
+    local function AutoClick()
+        while _G.AutoClick do
             game:GetService("ReplicatedStorage").Packages.Knit.Services.ClickService.RF.Click:InvokeServer()
             wait(0.000000000000001) 
         end
@@ -39,22 +37,25 @@ if game.PlaceId == 13642296453 then
 
     local function Rejoin()
         game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId)
+        wait(1)
     end
 
-    local function AutoCollectcoin()
-        while _G.AutoCollectcoin do
+    local function AutoHatch()
+        while _G.AutoHatch do
             local args = {
-                [1] = "eee76c54-903b-4368-af01-b2ca4eb36d84"
+                [1] = {
+                    ["eggName"] = _G.Selectegg,
+                    ["baseAmount"] = 1,
+                    ["auto"] = false,
+                    ["amount"] = 1
+                }
             }
-            
-            game:GetService("ReplicatedStorage").Packages.Knit.Services.ItemDropService.RF.ClaimItem:InvokeServer(unpack(args))
-            Wait(0.00000000000000000001)
+            game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RF.BuyEgg:InvokeServer(unpack(args))
+            wait(1)
         end
     end
 
-
     -- Abas
-
     local AutoFarmTab = Window:MakeTab({
         Name = "Auto Farm",
         Icon = "rbxassetid://4483345998",
@@ -67,8 +68,13 @@ if game.PlaceId == 13642296453 then
         PremiumOnly = false
     })
 
-    -- Seções
+    local EggsTab = Window:MakeTab({
+        Name = "Auto Egg",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
 
+    -- Seções
     local AutoFarmSection = AutoFarmTab:AddSection({
         Name = "Auto Farm" 
     })
@@ -77,23 +83,30 @@ if game.PlaceId == 13642296453 then
         Name = "Auto Rebirth"
     })
     
-    local MiscSection = MiscTab:AddSection({
+    local MiscPetsSection = MiscTab:AddSection({
         Name = "Pets"
     })
 
-    local MiscSection = MiscTab:AddSection({
+    local MiscPlayerSection = MiscTab:AddSection({
         Name = "Player Miscs"
     })
 
-    -- Botões
+    local MiscPlayerSection = MiscTab:AddSection({
+        Name = "Other"
+    })
 
+    local AutoEggSection = EggsTab:AddSection({
+        Name = "Auto Open Egg" 
+    })
+
+    -- Botões ativade/desativar
     AutoFarmSection:AddToggle({
         Name = "Auto Click", 
         Default = false,
         Callback = function(Value)
-            _G.AutoAtk = Value
+            _G.AutoClick = Value
             if Value then
-                AutoAtk()
+                AutoClick()
             end
         end
     })
@@ -109,38 +122,51 @@ if game.PlaceId == 13642296453 then
         end
     })
 
-    MiscSection:AddButton({
+    AutoEggSectionSection:AddToggle({
+        Name = "Auto Open",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoHatch = Value
+            if Value then
+                AutoHatch()
+            end
+        end
+    })
+
+    -- Botões
+
+    MiscPetsSection:AddButton({
         Name = "Equip Best Pets", 
         Callback = function()
             EquipBest()
         end
     })
 
-    MiscSection:AddButton({
-        Name = "Button!",
+    MiscPlayerSection:AddButton({
+        Name = "Rejoin",
         Callback = function()
             Rejoin()
-          end    
+        end    
     })
 
-    AutoFarmSection:AddToggle({
-        Name = "Auto Collect Coin",
-        Default = false,
+
+    --Dropdowns
+
+    EggsTab:AddDropdown({
+        Name = "Select Egg",
+        Default = "Starter Egg",
+        Options = {"Starter Egg", "Coming Soon..."},
         Callback = function(Value)
-            _G.AutoCollectcoin = Value
-            if Value then
-                AutoCollectcoin()
+            _G.Selectegg = Value
+            print(_G.Selectegg)
+            if _G.AutoHatch then
+                AutoHatch()
             end
-        end
+        end    
     })
-
-
-    -- Dropdowns
-
 
 
     -- Slider
-
     MiscTab:AddSlider({
         Name = "WalkSpeed",
         Min = 16,
@@ -148,7 +174,7 @@ if game.PlaceId == 13642296453 then
         Default = 5,
         Color = Color3.fromRGB(255,255,255),
         Increment = 1,
-        ValueName = "WS",
+        ValueName = "Walkspeed",
         Callback = function(Value)
             game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
         end    
@@ -163,13 +189,8 @@ if game.PlaceId == 13642296453 then
         Increment = 1,
         ValueName = "Height",
         Callback = function(Value)
-         game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
         end    
-       })
-
-
-end
-       })
-
+    })
 
 end
