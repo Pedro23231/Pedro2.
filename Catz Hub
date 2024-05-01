@@ -61,15 +61,15 @@ if game.PlaceId == 13642296453 then
         Icon = "rbxassetid://4483345998",
         PremiumOnly = false
     })
-    
-    local MiscTab = Window:MakeTab({
-        Name = "Misc",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
-    })
 
     local EggsTab = Window:MakeTab({
         Name = "Auto Egg",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+    
+    local MiscTab = Window:MakeTab({
+        Name = "Misc",
         Icon = "rbxassetid://4483345998",
         PremiumOnly = false
     })
