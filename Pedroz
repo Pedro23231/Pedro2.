@@ -4,11 +4,12 @@ if game.PlaceId == 13642296453 then
     local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
     -- Janela principal
-    local Window = OrionLib:MakeWindow({Name = "Catz Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
+    local Window = OrionLib:MakeWindow({Name = "Pedro Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "Pedro2."})
 
     -- Variáveis globais
     _G.AutoClick = false
-    _G.AutoRebirth = false
+    _G.AutoAttack = false
+    _G.AutoRebirth = true
     _G.AutoHatch = false
     _G.Selectegg = "Basic egg"
 
@@ -20,6 +21,7 @@ if game.PlaceId == 13642296453 then
             wait(0.000000000000001) 
         end
     end
+
 
     local function AutoRebirth()
         while _G.AutoRebirth do
@@ -63,9 +65,15 @@ if game.PlaceId == 13642296453 then
     })
 
     local EggsTab = Window:MakeTab({
-        Name = "Auto Egg",
+        Name = "Auto Hatch",
         Icon = "rbxassetid://4483345998",
         PremiumOnly = false
+    })
+
+    local TpTap = Window:MakeTab({
+        Name = "Teleport",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly  = false
     })
     
     local MiscTab = Window:MakeTab({
@@ -87,16 +95,20 @@ if game.PlaceId == 13642296453 then
         Name = "Pets"
     })
 
-    local MiscPlayerSection = MiscTab:AddSection({
-        Name = "Player Miscs"
-    })
-
-    local MiscPlayerSection = MiscTab:AddSection({
+    local MiscPlayerSection1 = MiscTab:AddSection({
         Name = "Other"
     })
 
+    local MiscPlayerSection2 = MiscTab:AddSection({
+        Name = "Player Miscs"
+    })
+
     local AutoEggSection = EggsTab:AddSection({
-        Name = "Auto Open Egg" 
+        Name = "Auto Hatch" 
+    })
+
+    local TpSection = TpTab:AddSection({
+        Name = "Teleport"
     })
 
     -- Botões ativade/desativar
@@ -122,7 +134,7 @@ if game.PlaceId == 13642296453 then
         end
     })
 
-    AutoEggSectionSection:AddToggle({
+    AutoEggSection:AddToggle({
         Name = "Auto Open",
         Default = false,
         Callback = function(Value)
@@ -142,7 +154,7 @@ if game.PlaceId == 13642296453 then
         end
     })
 
-    MiscPlayerSection:AddButton({
+    MiscPlayerSection1:AddButton({
         Name = "Rejoin",
         Callback = function()
             Rejoin()
@@ -152,7 +164,7 @@ if game.PlaceId == 13642296453 then
 
     --Dropdowns
 
-    EggsTab:AddDropdown({
+    AutoEggSection:AddDropdown({
         Name = "Select Egg",
         Default = "Starter Egg",
         Options = {"Starter Egg", "Coming Soon..."},
@@ -165,9 +177,29 @@ if game.PlaceId == 13642296453 then
         end    
     })
 
+    TpSection:AddDropdown({
+        Name = "Teleport",
+        Default = "Starter Island",
+        Options = {
+            ""
+        },
+        callback = function(value)
+            print("Selecionou a ilha:", value)
+            teleport()
+        end
+    })
+
+    local function teleport(island)
+        local Char = game.Players.LocalPlayer.Character
+        local HumanoidRootPart = Char:WaitForChild("HumanoidRootPart")
+
+        coordenadas = {
+            ["Starter island"] = CFrame.new()
+        }
+    end
 
     -- Slider
-    MiscTab:AddSlider({
+    MiscPlayerSection2:AddSlider({
         Name = "WalkSpeed",
         Min = 16,
         Max = 500,
@@ -176,20 +208,26 @@ if game.PlaceId == 13642296453 then
         Increment = 1,
         ValueName = "Walkspeed",
         Callback = function(Value)
-            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+            local player = game.Players.LocalPlayer
+            local character = Player.Character or player.CharacterAdded:wait()
+            local humanoid = character:WaitForChild("Humanoid")
+            humanoid.WalkSpeed = Value
         end    
     })
 
-    MiscTab:AddSlider({
-        Name = "Jump Height",
+    MiscPlayerSection2:AddSlider({
+        Name = "Jump Power",
         Min = 16,
         Max = 500,
         Default = 5,
         Color = Color3.fromRGB(255,255,255),
         Increment = 1,
-        ValueName = "Height",
+        ValueName = "Power",
         Callback = function(Value)
-            game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:WaitForChild("Humanoid")
+            humanoid.JumpPower = Value
         end    
     })
 
