@@ -1,5 +1,3 @@
---// Grok-Lab UI Library v1.0 - Full Featured Roblox Luau
--- Completa: Button, Toggle, TextInput, Slider, Dropdown, Draggable Window, Minimize
 local UILibrary = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
@@ -307,4 +305,156 @@ function UILibrary:Create(title)
     return windowAPI
 end
 
-print("UI Library carregada com sucesso.")
+--// UILibrary Full Self-Contained - Fixed & Enhanced
+local UILibrary = {}
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+
+local function createTween(obj, props, time)
+    return TS:Create(obj, TweenInfo.new(time or 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
+end
+
+function UILibrary:Create(title)
+    local player = game.Players.LocalPlayer
+    local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+    gui.ResetOnSpawn = false
+
+    local window = Instance.new("Frame")
+    window.Size = UDim2.new(0, 420, 0, 340)
+    window.Position = UDim2.new(0.5, -210, 0.4, 0)
+    window.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+    window.Parent = gui
+    Instance.new("UICorner", window).CornerRadius = UDim.new(0, 12)
+    Instance.new("UIStroke", window){Color = Color3.fromRGB(60,60,70), Thickness = 1.5}
+
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1,0,0,48)
+    titleBar.BackgroundColor3 = Color3.fromRGB(18,18,22)
+    titleBar.Parent = window
+    Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,12)
+
+    local titleLbl = Instance.new("TextLabel", titleBar)
+    titleLbl.Size = UDim2.new(1,-110,1,0)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = title or "UI Library - Grok Enhanced"
+    titleLbl.TextColor3 = Color3.fromRGB(240,240,245)
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = 17
+
+    local minBtn = Instance.new("TextButton", titleBar)
+    minBtn.Size = UDim2.new(0,36,0,36); minBtn.Position = UDim2.new(1,-82,0,6)
+    minBtn.BackgroundColor3 = Color3.fromRGB(255,180,0)
+    minBtn.Text = "−"; minBtn.TextColor3 = Color3.new(0,0,0)
+
+    local closeBtn = Instance.new("TextButton", titleBar)
+    closeBtn.Size = UDim2.new(0,36,0,36); closeBtn.Position = UDim2.new(1,-40,0,6)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(230,60,70)
+    closeBtn.Text = "×"; closeBtn.TextColor3 = Color3.new(1,1,1)
+
+    local scroll = Instance.new("ScrollingFrame", window)
+    scroll.Size = UDim2.new(1,-20,1,-70)
+    scroll.Position = UDim2.new(0,10,0,58)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 6
+    scroll.CanvasSize = UDim2.new(0,0,0,0)
+    local uiList = Instance.new("UIListLayout", scroll)
+    uiList.Padding = UDim.new(0,12)
+    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Draggable full
+    local dragging = false
+    titleBar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end end)
+    UIS.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+        window.Position += UDim2.new(0, i.Delta.X, 0, i.Delta.Y)
+    end end)
+    UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+    -- Minimize
+    local minimized = false
+    minBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        createTween(window, {Size = minimized and UDim2.new(0,420,0,55) or UDim2.new(0,420,0,340)}):Play()
+        scroll.Visible = not minimized
+    end)
+    closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+    local api = {Scroll = scroll}
+
+    function api:AddButton(txt, cb)
+        local b = Instance.new("TextButton", scroll)
+        b.Size = UDim2.new(1,-10,0,48)
+        b.BackgroundColor3 = Color3.fromRGB(45,45,52)
+        b.Text = txt
+        b.TextColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+        b.MouseButton1Click:Connect(cb or function() end)
+    end
+
+    function api:AddToggle(txt, def, cb)
+        local f = Instance.new("Frame", scroll); f.Size = UDim2.new(1,-10,0,48); f.BackgroundTransparency = 1
+        local l = Instance.new("TextLabel", f); l.Size = UDim2.new(0.7,0,1,0); l.BackgroundTransparency=1; l.Text = txt; l.TextXAlignment = Enum.TextXAlignment.Left
+        local tog = Instance.new("TextButton", f); tog.Size = UDim2.new(0,58,0,30); tog.Position = UDim2.new(1,-70,0.5,-15); tog.BackgroundColor3 = def and Color3.fromRGB(40,200,90) or Color3.fromRGB(90,90,95)
+        Instance.new("UICorner", tog).CornerRadius = UDim.new(1,0)
+        local knob = Instance.new("Frame", tog); knob.Size = UDim2.new(0,26,0,26); knob.Position = def and UDim2.new(1,-30,0.5,-13) or UDim2.new(0,2,0.5,-13)
+        Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+        local s = def
+        tog.MouseButton1Click:Connect(function()
+            s = not s
+            createTween(tog, {BackgroundColor3 = s and Color3.fromRGB(40,200,90) or Color3.fromRGB(90,90,95)}):Play()
+            createTween(knob, {Position = s and UDim2.new(1,-30,0.5,-13) or UDim2.new(0,2,0.5,-13)}):Play()
+            if cb then cb(s) end
+        end)
+    end
+
+    function api:AddSlider(txt, minv, maxv, defv, cb)
+        local f = Instance.new("Frame", scroll); f.Size = UDim2.new(1,-10,0,72); f.BackgroundTransparency = 1
+        local lbl = Instance.new("TextLabel", f); lbl.Size = UDim2.new(1,0,0,22); lbl.BackgroundTransparency=1; lbl.Text = txt..": "..defv
+        local track = Instance.new("Frame", f); track.Size = UDim2.new(1,-4,0,14); track.Position = UDim2.new(0,2,0,35); track.BackgroundColor3 = Color3.fromRGB(50,50,55)
+        Instance.new("UICorner", track).CornerRadius = UDim.new(1,0)
+        local fill = Instance.new("Frame", track); fill.Size = UDim2.new((defv-minv)/(maxv-minv),0,1,0); fill.BackgroundColor3 = Color3.fromRGB(0,160,255)
+        Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+        local drag = false
+        track.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true end end)
+        UIS.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end end)
+        RS.RenderStepped:Connect(function()
+            if drag then
+                local x = math.clamp((UIS:GetMouseLocation().X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+                local val = math.floor((minv + x * (maxv - minv)) * 10) / 10
+                fill.Size = UDim2.new(x,0,1,0)
+                lbl.Text = txt..": "..val
+                if cb then cb(val) end
+            end
+        end)
+    end
+
+    function api:AddDropdown(txt, opts, cb)
+        local f = Instance.new("Frame", scroll); f.Size = UDim2.new(1,-10,0,48); f.BackgroundColor3 = Color3.fromRGB(45,45,52)
+        Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
+        local disp = Instance.new("TextLabel", f); disp.Size = UDim2.new(1,-40,1,0); disp.BackgroundTransparency=1; disp.Text = txt..": "..opts[1]
+        local lst = Instance.new("Frame", f); lst.Visible=false; lst.Size=UDim2.new(1,0,0,#opts*36); lst.Position=UDim2.new(0,0,1,5); lst.BackgroundColor3=Color3.fromRGB(30,30,35); lst.ZIndex=100
+        Instance.new("UICorner", lst).CornerRadius = UDim.new(0,8)
+        for _,o in opts do
+            local ob = Instance.new("TextButton", lst); ob.Size=UDim2.new(1,0,0,36); ob.BackgroundTransparency=1; ob.Text=o
+            ob.MouseButton1Click:Connect(function() disp.Text=txt..": "..o; lst.Visible=false; if cb then cb(o) end end)
+        end
+        f.MouseButton1Click:Connect(function() lst.Visible = not lst.Visible end)
+    end
+
+    function api:AddInput(plc, def, cb)
+        local tb = Instance.new("TextBox", scroll)
+        tb.Size = UDim2.new(1,-10,0,48)
+        tb.BackgroundColor3 = Color3.fromRGB(45,45,52)
+        tb.PlaceholderText = plc
+        tb.Text = def or ""
+        Instance.new("UICorner", tb).CornerRadius = UDim.new(0,10)
+        tb.FocusLost:Connect(function() if cb then cb(tb.Text) end end)
+    end
+
+    uiList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0,0,0, uiList.AbsoluteContentSize.Y + 30)
+    end)
+
+    return api
+end
