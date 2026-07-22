@@ -110,13 +110,14 @@ function ApexUI:CreateWindow(config)
 
     -- Main frame
     local main = Instance.new("Frame")
-    main.Name            = "Main"
-    main.Size            = UDim2.fromOffset(width, height)
-    main.Position        = UDim2.fromScale(0.5, 0.5)
-    main.AnchorPoint     = Vector2.new(0.5, 0.5)
+    main.Name             = "Main"
+    main.Size             = UDim2.fromOffset(width, height)
+    main.Position         = UDim2.fromScale(0.5, 0.5)
+    main.AnchorPoint      = Vector2.new(0.5, 0.5)
     main.BackgroundColor3 = Theme.Background
-    main.BorderSizePixel = 0
-    main.Parent          = gui
+    main.BorderSizePixel  = 0
+    main.ClipsDescendants = true
+    main.Parent           = gui
     AddCorner(main, UDim.new(0, 10))
     AddStroke(main, Theme.Border, 1)
 
@@ -227,7 +228,6 @@ function ApexUI:CreateWindow(config)
     AddCorner(minBtn, UDim.new(0, 6))
 
     local minimized = false
-    local contentRef  -- forward reference, assigned below
 
     minBtn.MouseEnter:Connect(function()
         Tween(minBtn, {BackgroundColor3 = Theme.AccentDim, TextColor3 = Theme.Text})
@@ -238,9 +238,11 @@ function ApexUI:CreateWindow(config)
     minBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         if minimized then
-            Tween(main, {Size = UDim2.fromOffset(width, 48)})
+            Tween(main, {Size = UDim2.fromOffset(width, 48)}, 0.2, Enum.EasingStyle.Quad)
+            minBtn.Text = "□"
         else
-            Tween(main, {Size = UDim2.fromOffset(width, height)})
+            Tween(main, {Size = UDim2.fromOffset(width, height)}, 0.2, Enum.EasingStyle.Quad)
+            minBtn.Text = "─"
         end
     end)
 
@@ -519,7 +521,7 @@ function ApexUI:CreateWindow(config)
             end
 
             -- ── Slider ────────────────────
-            function Section:AddSlider(label, min, max, default, callback)
+function Section:AddSlider(label, min, max, default, callback)
                 min     = min     or 0
                 max     = max     or 100
                 default = default or min
@@ -556,7 +558,6 @@ function ApexUI:CreateWindow(config)
                 valLbl.TextXAlignment    = Enum.TextXAlignment.Right
                 valLbl.Parent            = row
 
-                -- Track
                 local track = Instance.new("Frame")
                 track.Size              = UDim2.new(1, -24, 0, 4)
                 track.Position          = UDim2.fromOffset(12, 34)
@@ -565,7 +566,6 @@ function ApexUI:CreateWindow(config)
                 track.Parent            = row
                 AddCorner(track, UDim.new(0, 2))
 
-                -- Fill
                 local fill = Instance.new("Frame")
                 fill.Size              = UDim2.fromScale((value - min) / (max - min), 1)
                 fill.BackgroundColor3  = Theme.Accent
@@ -573,7 +573,6 @@ function ApexUI:CreateWindow(config)
                 fill.Parent            = track
                 AddCorner(fill, UDim.new(0, 2))
 
-                -- Knob
                 local knob = Instance.new("Frame")
                 knob.Size              = UDim2.fromOffset(14, 14)
                 knob.Position          = UDim2.new((value - min) / (max - min), -7, 0.5, -7)
@@ -584,12 +583,11 @@ function ApexUI:CreateWindow(config)
                 AddCorner(knob, UDim.new(0, 7))
                 AddStroke(knob, Theme.Accent, 2)
 
-                local sliding = false
-
-                local function UpdateSlider(inputPos)
-                    local trackPos  = track.AbsolutePosition.X
-                    local trackSize = track.AbsoluteSize.X
-                    local alpha     = math.clamp((inputPos - trackPos) / trackSize, 0, 1)
+                -- FIX: usa posição absoluta do mouse, não coordenada local do botão
+                local function UpdateSlider(mouseX)
+                    local trackAbsX    = track.AbsolutePosition.X
+                    local trackAbsSize = track.AbsoluteSize.X
+                    local alpha = math.clamp((mouseX - trackAbsX) / trackAbsSize, 0, 1)
                     value = math.floor(min + alpha * (max - min) + 0.5)
                     local pct = (value - min) / (max - min)
                     fill.Size     = UDim2.fromScale(pct, 1)
@@ -598,6 +596,8 @@ function ApexUI:CreateWindow(config)
                     if callback then task.spawn(callback, value) end
                 end
 
+                local sliding = false
+
                 local hitbox = Instance.new("TextButton")
                 hitbox.Size              = UDim2.new(1, 0, 1, 0)
                 hitbox.BackgroundTransparency = 1
@@ -605,14 +605,15 @@ function ApexUI:CreateWindow(config)
                 hitbox.ZIndex            = 3
                 hitbox.Parent            = track
 
-                hitbox.MouseButton1Down:Connect(function(x)
+                -- FIX: pega X absoluto do mouse via UserInputService, não o parâmetro local
+                hitbox.MouseButton1Down:Connect(function()
                     sliding = true
-                    UpdateSlider(x)
+                    UpdateSlider(UserInputService:GetMouseLocation().X)
                 end)
 
                 UserInputService.InputChanged:Connect(function(input)
                     if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        UpdateSlider(input.Position.X)
+                        UpdateSlider(UserInputService:GetMouseLocation().X)
                     end
                 end)
 
