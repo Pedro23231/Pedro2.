@@ -1,0 +1,785 @@
+-- GB Hub - Anime Duelists helper using Fluent UI
+-- UI source base: dawid-scripts/Fluent
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+if not player then error("LocalPlayer nao encontrado.") end
+
+local playerScripts = player:WaitForChild("PlayerScripts", 10)
+local clientFolder = playerScripts and playerScripts:WaitForChild("Client", 10)
+local mainModule = clientFolder and clientFolder:WaitForChild("Main", 10)
+if not mainModule then error("Client.Main nao encontrado.") end
+
+local Main = require(mainModule)
+local PlayerGui = player:WaitForChild("PlayerGui")
+local UI = PlayerGui:WaitForChild("UI", 10)
+local frames = UI and (UI:FindFirstChild("Frames") or UI:WaitForChild("Frames", 10))
+if not UI then error("UI nao encontrada.") end
+
+pcall(function()
+	for _, name in ipairs({"GB Hub", "GB Helper", "GBHelperMobileToggle", "TrialShopHelper", "RerollMinimizer"}) do
+		local old = PlayerGui:FindFirstChild(name)
+		if old then old:Destroy() end
+		local oldCore = CoreGui:FindFirstChild(name)
+		if oldCore then oldCore:Destroy() end
+	end
+
+	for _, root in ipairs({CoreGui, PlayerGui, gethui and gethui()}) do
+		if root then
+			for _, gui in ipairs(root:GetChildren()) do
+				if gui:IsA("ScreenGui") and (gui:GetAttribute("GBHubFluent") or gui.Name == "ScreenGui") then
+					local isGBHub = gui:GetAttribute("GBHubFluent") == true
+					if not isGBHub then
+						for _, d in ipairs(gui:GetDescendants()) do
+							if d:IsA("TextLabel") and tostring(d.Text):find("GB Hub", 1, true) then
+								isGBHub = true
+								break
+							end
+						end
+					end
+					if isGBHub then
+						gui:Destroy()
+					end
+				end
+			end
+		end
+	end
+end)
+
+local function fetch(url)
+	return game:HttpGet(url)
+end
+
+local Fluent = loadstring(fetch("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Window = Fluent:CreateWindow({
+	Title = "GB Hub",
+	SubTitle = "Anime Duelists",
+	TabWidth = 150,
+	Size = UDim2.fromOffset(620, 480),
+	Acrylic = false,
+	Theme = "Darker",
+	MinimizeKey = Enum.KeyCode.K
+})
+
+task.defer(function()
+	for _, root in ipairs({CoreGui, PlayerGui, gethui and gethui()}) do
+		if root then
+			for _, gui in ipairs(root:GetChildren()) do
+				if gui:IsA("ScreenGui") then
+					for _, d in ipairs(gui:GetDescendants()) do
+						if d:IsA("TextLabel") and tostring(d.Text):find("GB Hub", 1, true) then
+							gui:SetAttribute("GBHubFluent", true)
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+local Tabs = {
+	Shop = Window:AddTab({Title = "Trial Shop", Icon = "shopping-cart"}),
+	Stats = Window:AddTab({Title = "Stats Reroll", Icon = "bar-chart-3"}),
+	Trait = Window:AddTab({Title = "Trait Reroll", Icon = "sparkles"}),
+	Sell = Window:AddTab({Title = "Auto Sell Tower", Icon = "trash-2"}),
+	Webhook = Window:AddTab({Title = "Webhook", Icon = "send"}),
+	Settings = Window:AddTab({Title = "Settings", Icon = "settings"})
+}
+
+local Options = Fluent.Options
+local BUY_DELAY = 0.035
+local rankList = {"E", "D", "C", "B", "A", "S", "S+"}
+local rankOrder = {E = 1, D = 2, C = 3, B = 4, A = 5, S = 6, ["S+"] = 7}
+local statNames = {"Damage", "SpeedAttack", "UltimateDamage"}
+local rarityValue = {Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythical = 6, Secret = 7}
+
+local function notify(title, content, seconds)
+	pcall(function()
+		Fluent:Notify({Title = title, Content = content, Duration = seconds or 4})
+	end)
+end
+
+local function getContainer()
+	if gethui then
+		local ok, hui = pcall(gethui)
+		if ok and hui then return hui end
+	end
+	return CoreGui
+end
+
+local function makeMobileToggle()
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "GBHelperMobileToggle"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.Parent = getContainer()
+
+	local btn = Instance.new("TextButton")
+	btn.Name = "Toggle"
+	btn.Size = UDim2.fromOffset(54, 54)
+	btn.Position = UDim2.new(1, -72, 1, -86)
+	btn.BackgroundColor3 = Color3.fromRGB(8, 12, 18)
+	btn.Text = "GB"
+	btn.TextColor3 = Color3.fromRGB(255, 230, 60)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 15
+	btn.AutoButtonColor = true
+	btn.Parent = gui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = btn
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(255, 230, 60)
+	stroke.Transparency = 0.35
+	stroke.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		local ok = pcall(function()
+			if Window.Minimize then
+				Window:Minimize()
+			elseif Window.Toggle then
+				Window:Toggle()
+			end
+		end)
+		if not ok then
+			pcall(function()
+				game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.K, false, game)
+				task.wait()
+				game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.K, false, game)
+			end)
+		end
+	end)
+end
+makeMobileToggle()
+
+local function itemCount(name)
+	local inv = Main.Data and Main.Data.Inventory
+	local items = inv and inv.Items
+	return tonumber(items and items[name]) or 0
+end
+
+local function fighterDisplay(id, data)
+	local shared = data and Main.Shared.Fighters and Main.Shared.Fighters[data.Name]
+	local name = (data and data.Custom_Name) or (shared and shared.Name) or (data and data.Name) or tostring(id)
+	local rarity = shared and shared.Rarity
+	if data and data.Shiny then name = "Shiny " .. name end
+	if data and tonumber(data.Star) == 2 then name = name .. " 2S" end
+	if data and data.Trait and data.Trait ~= "" then name = name .. " | " .. tostring(data.Trait) end
+	if rarity then name = name .. " [" .. tostring(rarity) .. "]" end
+	return name
+end
+
+local function passesSearch(text, search)
+	search = string.lower(tostring(search or ""))
+	if search == "" then return true end
+	return string.find(string.lower(tostring(text or "")), search, 1, true) ~= nil
+end
+
+local function getFighterValues(search)
+	local values = {}
+	for id, data in pairs((Main.Data and Main.Data.Fighters) or {}) do
+		local label = fighterDisplay(id, data) .. " | " .. tostring(id)
+		if passesSearch(label, search) then
+			table.insert(values, label)
+		end
+	end
+	table.sort(values)
+	if #values == 0 then
+		table.insert(values, "Nada encontrado")
+	end
+	return values
+end
+
+local function idFromLabel(label)
+	return tostring(label or ""):match("|%s*([^|]+)$") or tostring(label or "")
+end
+
+local function rankMeets(current, target)
+	return (rankOrder[current or "E"] or 1) >= (rankOrder[target or "E"] or 1)
+end
+
+local function getSelectedFighter(id)
+	return Main.Data and Main.Data.Fighters and Main.Data.Fighters[id]
+end
+
+local function openFrame(name)
+	local target = frames and frames:FindFirstChild(name)
+	local frameUtil = Main.Utils and Main.Utils.Frame
+	if target and frameUtil then
+		local frameObj = frameUtil:Get(target)
+		if frameObj then
+			frameObj:Active()
+			return true
+		end
+	end
+	return false
+end
+
+-- Trial Shop
+local shopState = {selectedSlot = "", buying = false, amount = 1, search = "", items = {}}
+local shopStatus = Tabs.Shop:AddParagraph({Title = "Status", Content = "Pronto."})
+
+local function trialItemName(data, fallback)
+	if data and data.Type == "Item" and Main.Shared.Items[data.Name] then
+		return Main.Shared.Items[data.Name].Name or data.Name
+	end
+	return data and data.Name or fallback
+end
+
+local function refreshShop()
+	table.clear(shopState.items)
+	for slot, data in pairs(Main.Shared.TrialMerchant or {}) do
+		table.insert(shopState.items, {
+			slot = slot,
+			label = trialItemName(data, slot) .. " | slot " .. tostring(slot),
+			price = tonumber(data.Price) or 0,
+			stock = tonumber(data.Stock) or 0
+		})
+	end
+	table.sort(shopState.items, function(a, b) return tostring(a.slot) < tostring(b.slot) end)
+	if shopState.selectedSlot == "" and shopState.items[1] then shopState.selectedSlot = shopState.items[1].slot end
+end
+
+local function shopValues()
+	refreshShop()
+	local values = {}
+	for _, item in ipairs(shopState.items) do
+		if passesSearch(item.label, shopState.search) then
+			table.insert(values, item.label)
+		end
+	end
+	if #values == 0 then table.insert(values, "Nada encontrado") end
+	return values
+end
+
+local function selectedShopItem()
+	for _, item in ipairs(shopState.items) do
+		if tostring(item.slot) == tostring(shopState.selectedSlot) then return item end
+	end
+end
+
+local function shopRemaining(item)
+	local bought = Main.Data and Main.Data.TrialMerchant and Main.Data.TrialMerchant.List
+	return math.max((item and item.stock or 0) - (tonumber(bought and bought[item.slot]) or 0), 0)
+end
+
+local function shopMax(item)
+	if not item or item.price <= 0 then return 0 end
+	return math.min(shopRemaining(item), math.floor(itemCount("TrialShard") / item.price))
+end
+
+local ShopDropdown = Tabs.Shop:AddDropdown("GBShopItem", {
+	Title = "Item",
+	Values = shopValues(),
+	Multi = false,
+	Default = 1
+})
+ShopDropdown:OnChanged(function(value)
+	if value == "Nada encontrado" then return end
+	shopState.selectedSlot = tostring(value):match("slot%s*(.+)$") or shopState.selectedSlot
+end)
+
+Tabs.Shop:AddInput("GBShopSearch", {
+	Title = "Pesquisar item",
+	Default = "",
+	Placeholder = "digite o nome do item",
+	Finished = false,
+	Callback = function(value)
+		shopState.search = value or ""
+		ShopDropdown:SetValues(shopValues())
+	end
+})
+
+Tabs.Shop:AddInput("GBShopAmount", {
+	Title = "Quantidade",
+	Default = "1",
+	Numeric = true,
+	Finished = false,
+	Callback = function(value)
+		shopState.amount = math.max(1, math.floor(tonumber(value) or 1))
+	end
+})
+
+local function updateShopStatus(text)
+	shopStatus:SetDesc(text)
+end
+
+local function buyAmount(amount)
+	local item = selectedShopItem()
+	if not item then updateShopStatus("Selecione um item."); return end
+	local total = math.min(amount or shopState.amount or 1, shopMax(item))
+	if total <= 0 then updateShopStatus("Sem estoque ou shards insuficientes."); return end
+
+	shopState.buying = true
+	for i = 1, total do
+		if not shopState.buying then break end
+		Main.Bridge:FireServer("General", "TrialMerchant", "Buy", item.slot)
+		updateShopStatus("Comprando " .. item.label .. " " .. i .. "/" .. total)
+		task.wait(BUY_DELAY)
+	end
+	shopState.buying = false
+	updateShopStatus("Finalizado.")
+end
+
+Tabs.Shop:AddButton({Title = "Abrir loja", Callback = function() updateShopStatus(openFrame("TrialMerchant") and "Loja aberta." or "Nao achei a loja.") end})
+Tabs.Shop:AddButton({Title = "Comprar", Callback = function() task.spawn(function() buyAmount(shopState.amount) end) end})
+Tabs.Shop:AddButton({Title = "Comprar max", Callback = function() task.spawn(function() buyAmount(shopMax(selectedShopItem())) end) end})
+Tabs.Shop:AddButton({Title = "Parar compra", Callback = function() shopState.buying = false; updateShopStatus("Compra parada.") end})
+Tabs.Shop:AddButton({Title = "Refresh loja", Callback = function() ShopDropdown:SetValues(shopValues()); updateShopStatus("Loja atualizada.") end})
+
+-- Stats Reroll
+local statsState = {selectedFighter = "", running = false, targets = {Damage = "A", SpeedAttack = "A", UltimateDamage = "A"}}
+local statsStatus = Tabs.Stats:AddParagraph({Title = "Status", Content = "Selecione um fighter."})
+local statsSearch = ""
+local StatsFighter = Tabs.Stats:AddDropdown("GBStatsFighter", {Title = "Fighter", Values = getFighterValues(statsSearch), Multi = false})
+StatsFighter:OnChanged(function(v)
+	if v == "Nada encontrado" then return end
+	statsState.selectedFighter = idFromLabel(v)
+end)
+
+Tabs.Stats:AddInput("GBStatsFighterSearch", {
+	Title = "Pesquisar fighter",
+	Default = "",
+	Placeholder = "nome, trait, raridade ou id",
+	Finished = false,
+	Callback = function(value)
+		statsSearch = value or ""
+		StatsFighter:SetValues(getFighterValues(statsSearch))
+	end
+})
+
+for _, stat in ipairs(statNames) do
+	local dd = Tabs.Stats:AddDropdown("GBStats" .. stat, {Title = stat .. " minimo", Values = rankList, Multi = false, Default = "A"})
+	dd:OnChanged(function(v) statsState.targets[stat] = v end)
+end
+
+local function allStatsMet(fighter)
+	local stats = fighter and fighter.Stats or {}
+	for _, stat in ipairs(statNames) do
+		if not rankMeets(stats[stat], statsState.targets[stat]) then return false end
+	end
+	return true
+end
+
+local function statLocks(fighter)
+	local locks = {}
+	local stats = fighter and fighter.Stats or {}
+	for _, stat in ipairs(statNames) do
+		if rankMeets(stats[stat], statsState.targets[stat]) then locks[stat] = true end
+	end
+	return locks
+end
+
+local function setStatsStatus(text) statsStatus:SetDesc(text) end
+local function runStats()
+	if statsState.running then return end
+	local fighter = getSelectedFighter(statsState.selectedFighter)
+	if not fighter then setStatsStatus("Selecione um fighter primeiro."); return end
+	if allStatsMet(fighter) then setStatsStatus("Ja bateu todas as metas."); return end
+	if itemCount("StatsReroll") <= 0 then setStatsStatus("Sem Stats Reroll."); return end
+
+	statsState.running = true
+	local rolls = 0
+	while statsState.running do
+		fighter = getSelectedFighter(statsState.selectedFighter)
+		if not fighter then setStatsStatus("Fighter nao encontrado."); break end
+		if allStatsMet(fighter) then setStatsStatus("Meta batida. Parou."); break end
+		if itemCount("StatsReroll") <= 0 then setStatsStatus("Parou: sem Stats Reroll."); break end
+		Main.Bridge:FireServer("General", "Stats", "Reroll", statsState.selectedFighter, statLocks(fighter))
+		rolls = rolls + 1
+		local st = fighter.Stats or {}
+		setStatsStatus("Girando: " .. rolls .. " | D " .. tostring(st.Damage or "-") .. " | Spd " .. tostring(st.SpeedAttack or "-") .. " | Ult " .. tostring(st.UltimateDamage or "-") .. " | Skipando nao selecionados")
+		task.wait(0.22)
+	end
+	statsState.running = false
+end
+
+Tabs.Stats:AddButton({Title = "Iniciar stats", Callback = function() task.spawn(runStats) end})
+Tabs.Stats:AddButton({Title = "Parar stats", Callback = function() statsState.running = false; setStatsStatus("Stats parado.") end})
+Tabs.Stats:AddButton({Title = "Refresh fighters", Callback = function() StatsFighter:SetValues(getFighterValues(statsSearch)); setStatsStatus("Fighters atualizados.") end})
+Tabs.Stats:AddButton({Title = "Abrir Stats", Callback = function() setStatsStatus(openFrame("Stats") and "Stats aberto." or "Nao achei a tela Stats.") end})
+
+-- Trait Reroll
+local TraitRemote = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Trait")
+local traitState = {selectedFighter = "", selectedTarget = "Any Mythical+", running = false, filter = "", fighterSearch = ""}
+local traitStatus = Tabs.Trait:AddParagraph({Title = "Status", Content = "Selecione uma trait alvo."})
+local TraitFighter = Tabs.Trait:AddDropdown("GBTraitFighter", {Title = "Fighter", Values = getFighterValues(traitState.fighterSearch), Multi = false})
+TraitFighter:OnChanged(function(v)
+	if v == "Nada encontrado" then return end
+	traitState.selectedFighter = idFromLabel(v)
+end)
+
+Tabs.Trait:AddInput("GBTraitFighterSearch", {
+	Title = "Pesquisar fighter",
+	Default = "",
+	Placeholder = "nome, trait, raridade ou id",
+	Finished = false,
+	Callback = function(value)
+		traitState.fighterSearch = value or ""
+		TraitFighter:SetValues(getFighterValues(traitState.fighterSearch))
+	end
+})
+
+local function traitValues()
+	local values = {"Any Legendary+", "Any Mythical+", "Any Secret"}
+	local filter = string.lower(traitState.filter or "")
+	for name, data in pairs(Main.Shared.Traits or {}) do
+		local label = tostring(name) .. " [" .. tostring(data and data.Rarity or "?") .. "]"
+		if filter == "" or string.find(string.lower(label), filter, 1, true) then
+			table.insert(values, tostring(name))
+		end
+	end
+	table.sort(values, function(a, b)
+		local aa, bb = string.sub(a, 1, 3) == "Any", string.sub(b, 1, 3) == "Any"
+		if aa ~= bb then return aa end
+		return a < b
+	end)
+	return values
+end
+
+local TraitTarget = Tabs.Trait:AddDropdown("GBTraitTarget", {Title = "Trait alvo", Values = traitValues(), Multi = false, Default = "Any Mythical+"})
+TraitTarget:OnChanged(function(v)
+	if v == "Nada encontrado" then return end
+	traitState.selectedTarget = v
+end)
+Tabs.Trait:AddInput("GBTraitFilter", {
+	Title = "Filtrar trait",
+	Default = "",
+	Placeholder = "nome ou raridade",
+	Finished = false,
+	Callback = function(v)
+		traitState.filter = v or ""
+		TraitTarget:SetValues(traitValues())
+	end
+})
+
+local function traitMatches(trait)
+	local target = traitState.selectedTarget
+	local data = Main.Shared.Traits and Main.Shared.Traits[trait or ""]
+	local rarity = data and data.Rarity
+	local value = rarityValue[rarity] or 0
+	if target == "Any Legendary+" then return value >= rarityValue.Legendary end
+	if target == "Any Mythical+" then return value >= rarityValue.Mythical end
+	if target == "Any Secret" then return value >= rarityValue.Secret end
+	return trait == target
+end
+
+local function setTraitStatus(text) traitStatus:SetDesc(text) end
+local function runTrait()
+	if traitState.running then return end
+	if not TraitRemote then setTraitStatus("Remote Trait nao encontrado."); return end
+	local fighter = getSelectedFighter(traitState.selectedFighter)
+	if not fighter then setTraitStatus("Selecione um fighter primeiro."); return end
+	if traitMatches(fighter.Trait) then setTraitStatus("Ja esta na trait alvo."); return end
+	if itemCount("TraitReroll") <= 0 then setTraitStatus("Sem Trait Reroll."); return end
+
+	traitState.running = true
+	local rolls = 0
+	while traitState.running do
+		fighter = getSelectedFighter(traitState.selectedFighter)
+		if not fighter then setTraitStatus("Fighter nao encontrado."); break end
+		if traitMatches(fighter.Trait) then setTraitStatus("Meta batida: " .. tostring(fighter.Trait)); break end
+		if itemCount("TraitReroll") <= 0 then setTraitStatus("Parou: sem Trait Reroll."); break end
+		local ok, result = pcall(function()
+			return TraitRemote:InvokeServer(traitState.selectedFighter)
+		end)
+		rolls = rolls + 1
+		if not ok then setTraitStatus("Erro no remote Trait: " .. tostring(result)); break end
+		setTraitStatus("Girando: " .. rolls .. " | atual " .. tostring(result or fighter.Trait or "Nenhuma") .. " | Skipando nao selecionadas")
+		task.wait(0.2)
+	end
+	traitState.running = false
+end
+
+Tabs.Trait:AddButton({Title = "Iniciar trait", Callback = function() task.spawn(runTrait) end})
+Tabs.Trait:AddButton({Title = "Parar trait", Callback = function() traitState.running = false; setTraitStatus("Trait parado.") end})
+Tabs.Trait:AddButton({Title = "Refresh fighters", Callback = function() TraitFighter:SetValues(getFighterValues(traitState.fighterSearch)); setTraitStatus("Fighters atualizados.") end})
+Tabs.Trait:AddButton({Title = "Refresh traits", Callback = function() TraitTarget:SetValues(traitValues()); setTraitStatus("Traits atualizadas.") end})
+Tabs.Trait:AddButton({Title = "Abrir Traits", Callback = function() setTraitStatus(openFrame("Traits") and "Traits aberto." or "Nao achei a tela Traits.") end})
+
+-- Auto Sell Tower Shadow
+local sellModes = {"Normal", "Shiny", "Star 2", "Normal + Shiny", "Normal + Star 2", "Shiny + Star 2", "Todos"}
+local sellState = {enabled = false, mode = "Normal", modeSearch = "", baseline = {}, processed = {}, sold = 0}
+local sellStatus = Tabs.Sell:AddParagraph({Title = "Status", Content = "Desligado. So vende Shadows novos dropados depois de ativar."})
+
+local function setSellBaseline()
+	table.clear(sellState.baseline)
+	table.clear(sellState.processed)
+	for id in pairs((Main.Data and Main.Data.Fighters) or {}) do sellState.baseline[id] = true end
+end
+setSellBaseline()
+
+local function shouldSell(data)
+	if not data or data.Name ~= "Shadow" then return false end
+	local shiny = data.Shiny == true
+	local star2 = tonumber(data.Star) == 2
+	local normal = not shiny and not star2
+	local mode = sellState.mode
+	if mode == "Todos" then return true end
+	if mode == "Normal" then return normal end
+	if mode == "Shiny" then return shiny end
+	if mode == "Star 2" then return star2 end
+	if mode == "Normal + Shiny" then return normal or shiny end
+	if mode == "Normal + Star 2" then return normal or star2 end
+	if mode == "Shiny + Star 2" then return shiny or star2 end
+	return false
+end
+
+local function sellModeValues()
+	local values = {}
+	for _, mode in ipairs(sellModes) do
+		if passesSearch(mode, sellState.modeSearch) then
+			table.insert(values, mode)
+		end
+	end
+	if #values == 0 then table.insert(values, "Nada encontrado") end
+	return values
+end
+
+local SellMode = Tabs.Sell:AddDropdown("GBSellMode", {Title = "Vender Shadow", Values = sellModeValues(), Multi = false, Default = "Normal"})
+SellMode:OnChanged(function(v)
+	if v == "Nada encontrado" then return end
+	sellState.mode = v
+	sellStatus:SetDesc("Filtro: " .. tostring(v))
+end)
+
+Tabs.Sell:AddInput("GBSellModeSearch", {
+	Title = "Pesquisar filtro",
+	Default = "",
+	Placeholder = "normal, shiny, star...",
+	Finished = false,
+	Callback = function(value)
+		sellState.modeSearch = value or ""
+		SellMode:SetValues(sellModeValues())
+	end
+})
+
+local SellToggle = Tabs.Sell:AddToggle("GBSellToggle", {Title = "Auto sell Shadow novos", Default = false})
+SellToggle:OnChanged(function()
+	sellState.enabled = Options.GBSellToggle.Value
+	if sellState.enabled then
+		setSellBaseline()
+		sellStatus:SetDesc("Ligado. Aguardando Shadow novo. Filtro: " .. sellState.mode)
+	else
+		sellStatus:SetDesc("Desligado. Vendidos: " .. sellState.sold)
+	end
+end)
+Tabs.Sell:AddButton({Title = "Reset baseline", Callback = function() setSellBaseline(); sellStatus:SetDesc("Baseline resetada. So drops novos daqui pra frente.") end})
+
+task.spawn(function()
+	while task.wait(0.55) do
+		if sellState.enabled then
+			for id, data in pairs((Main.Data and Main.Data.Fighters) or {}) do
+				if not sellState.baseline[id] and not sellState.processed[id] then
+					if shouldSell(data) then
+						if Main.Data.Fighters_Equipped and Main.Data.Fighters_Equipped[id] then
+							sellState.processed[id] = true
+							sellStatus:SetDesc("Pulou equipado: " .. fighterDisplay(id, data))
+						else
+							if data.Locked then
+								Main.Bridge:FireServer("Fighters", "Inventory", "Lock", id)
+								task.wait(0.12)
+							end
+							Main.Bridge:FireServer("Fighters", "Inventory", "Dismantle", {id})
+							sellState.processed[id] = true
+							sellState.sold = sellState.sold + 1
+							sellStatus:SetDesc("Vendido: " .. fighterDisplay(id, data) .. " | total " .. sellState.sold)
+							task.wait(0.18)
+						end
+					elseif data and data.Name == "Shadow" then
+						sellState.processed[id] = true
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Webhook
+local webhookState = {enabled = false, url = "", interval = 60, lastItems = {}, lastFighters = {}, initialized = false}
+local webhookStatus = Tabs.Webhook:AddParagraph({Title = "Status", Content = "Webhook desligado."})
+
+local function requestFn()
+	return (syn and syn.request) or (http and http.request) or http_request or request
+end
+
+local function itemSnapshot()
+	local snap = {}
+	for name, amount in pairs((Main.Data and Main.Data.Inventory and Main.Data.Inventory.Items) or {}) do
+		if tonumber(amount) and tonumber(amount) > 0 then snap[tostring(name)] = tonumber(amount) end
+	end
+	return snap
+end
+
+local function fighterSnapshot()
+	local snap = {}
+	for id, data in pairs((Main.Data and Main.Data.Fighters) or {}) do
+		snap[tostring(id)] = fighterDisplay(id, data)
+	end
+	return snap
+end
+
+local function resetWebhook()
+	webhookState.lastItems = itemSnapshot()
+	webhookState.lastFighters = fighterSnapshot()
+	webhookState.initialized = true
+end
+resetWebhook()
+
+local function collectChanges()
+	local items = itemSnapshot()
+	local fighters = fighterSnapshot()
+	local newItems, newFighters = {}, {}
+	for name, amount in pairs(items) do
+		local old = webhookState.lastItems[name] or 0
+		if amount > old then table.insert(newItems, name .. " +" .. tostring(amount - old) .. " (total " .. amount .. ")") end
+	end
+	for id, name in pairs(fighters) do
+		if not webhookState.lastFighters[id] then table.insert(newFighters, name .. " `" .. id .. "`") end
+	end
+	webhookState.lastItems = items
+	webhookState.lastFighters = fighters
+	return newItems, newFighters
+end
+
+local function trimField(text)
+	text = tostring(text or "")
+	if #text > 1000 then
+		return string.sub(text, 1, 997) .. "..."
+	end
+	return text
+end
+
+local function makeEmbed(title, description, fields, color)
+	return {
+		title = title,
+		description = description,
+		color = color or 0xF4DA23,
+		fields = fields or {},
+		footer = {text = "GB Hub | " .. player.Name},
+		timestamp = DateTime.now():ToIsoDate(),
+	}
+end
+
+local function sendWebhookEmbed(embed)
+	local req = requestFn()
+	if webhookState.url == "" then webhookStatus:SetDesc("Coloque a URL do webhook."); return end
+	if not req then webhookStatus:SetDesc("Executor sem request/http_request."); return end
+	local ok = pcall(function()
+		req({
+			Url = webhookState.url,
+			Method = "POST",
+			Headers = {["Content-Type"] = "application/json"},
+			Body = HttpService:JSONEncode({
+				username = "GB Hub",
+				embeds = {embed}
+			})
+		})
+	end)
+	webhookStatus:SetDesc(ok and "Webhook enviado." or "Erro ao enviar webhook.")
+end
+
+Tabs.Webhook:AddInput("GBWebhookUrl", {
+	Title = "URL",
+	Default = "",
+	Placeholder = "https://discord.com/api/webhooks/...",
+	Finished = false,
+	Callback = function(v) webhookState.url = v or "" end
+})
+Tabs.Webhook:AddSlider("GBWebhookInterval", {
+	Title = "Intervalo",
+	Description = "Segundos entre checks",
+	Default = 60,
+	Min = 15,
+	Max = 300,
+	Rounding = 0,
+	Callback = function(v) webhookState.interval = math.floor(v) end
+})
+local WebhookToggle = Tabs.Webhook:AddToggle("GBWebhookToggle", {Title = "Monitorar inventario", Default = false})
+WebhookToggle:OnChanged(function()
+	webhookState.enabled = Options.GBWebhookToggle.Value
+	if webhookState.enabled then
+		resetWebhook()
+		webhookStatus:SetDesc("Ligado. Check a cada " .. webhookState.interval .. "s.")
+	else
+		webhookStatus:SetDesc("Webhook desligado.")
+	end
+end)
+Tabs.Webhook:AddButton({Title = "Teste", Callback = function()
+	sendWebhookEmbed(makeEmbed(
+		"GB Hub - Teste",
+		"Webhook conectado e pronto para monitorar o inventario.",
+		{
+			{name = "Player", value = "`" .. player.Name .. "`", inline = true},
+			{name = "Intervalo", value = tostring(webhookState.interval) .. "s", inline = true},
+		},
+		0x5CD7FF
+	))
+end})
+Tabs.Webhook:AddButton({Title = "Reset baseline", Callback = function() resetWebhook(); webhookStatus:SetDesc("Baseline do webhook resetada.") end})
+
+task.spawn(function()
+	while task.wait(1) do
+		if webhookState.enabled then
+			local waited = 0
+			while webhookState.enabled and waited < webhookState.interval do
+				task.wait(1)
+				waited = waited + 1
+			end
+			if webhookState.enabled then
+				local newItems, newFighters = collectChanges()
+				if #newItems > 0 or #newFighters > 0 then
+					local fields = {
+						{name = "Player", value = "`" .. player.Name .. "`", inline = true},
+						{name = "Intervalo", value = tostring(webhookState.interval) .. "s", inline = true},
+					}
+					if #newItems > 0 then
+						table.insert(fields, {
+							name = "Novos itens",
+							value = trimField("- " .. table.concat(newItems, "\n- ")),
+							inline = false,
+						})
+					end
+					if #newFighters > 0 then
+						table.insert(fields, {
+							name = "Novos fighters",
+							value = trimField("- " .. table.concat(newFighters, "\n- ")),
+							inline = false,
+						})
+					end
+					sendWebhookEmbed(makeEmbed(
+						"Inventario atualizado",
+						"Novos drops detectados pelo monitor do GB Hub.",
+						fields,
+						0xF4DA23
+					))
+				else
+					webhookStatus:SetDesc("Check feito: nada novo.")
+				end
+			end
+		end
+	end
+end)
+
+Tabs.Settings:AddParagraph({Title = "Atalhos", Content = "K abre/fecha no teclado. No celular use o botao GB."})
+Tabs.Settings:AddButton({Title = "Unload", Callback = function()
+	shopState.buying = false
+	statsState.running = false
+	traitState.running = false
+	sellState.enabled = false
+	webhookState.enabled = false
+	pcall(function() Fluent:Destroy() end)
+	local old = getContainer():FindFirstChild("GBHelperMobileToggle")
+	if old then old:Destroy() end
+end})
+
+Window:SelectTab(1)
+notify("GB Hub", "Fluent UI carregada.", 5)
